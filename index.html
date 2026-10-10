@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Digital Scoring TGR - Firebase Connected</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compatibility Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+        }
+
+        /* Kunci halaman agar tidak bisa di-scroll secara keseluruhan */
+        html, body {
+            background-color: #dce4e6;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Container Utama dengan unit responsif (vh/vw) */
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            padding: 2vh 2vw;
+        }
+
+        /* ----- HEADER ----- */
+        .header {
+            flex: 0 0 auto;
+            background-color: #e5ebec;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5vh 1.5vw;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2vh;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+        }
+
+        .sudut-box {
+            width: 45px;
+            height: 45px;
+            background: #bdc3c7; /* Default abu-abu */
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .athlete-info { display: flex; flex-direction: column; }
+        
+        .athlete-name {
+            color: #555;
+            font-size: clamp(16px, 2vw, 22px);
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .athlete-kontingen {
+            color: #333;
+            font-size: clamp(12px, 1.5vw, 16px);
+            font-weight: 500;
+        }
+
+        .header-center { text-align: center; }
+
+        .partai-title {
+            font-size: 14px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .partai-number {
+            font-size: clamp(20px, 2.5vw, 26px);
+            font-weight: 700;
+            color: #222;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-right-text {
+            text-align: right;
+            font-size: clamp(10px, 1.2vw, 14px);
+            color: #555;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Tombol Landscape Ujung Kanan Atas */
+        .btn-landscape {
+            background-color: #dce4e6;
+            border: 1px solid #bdc3c7;
+            width: clamp(35px, 4vw, 45px);
+            height: clamp(35px, 4vw, 45px);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .btn-landscape:hover {
+            background-color: #cfd9dc;
+        }
+
+        /* ----- MAIN CONTENT (PENALTY LIST) ----- */
+        .main-content {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            padding: 0 1vw;
+            gap: 1vh;
+        }
+
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: transparent; }
+        .main-content::-webkit-scrollbar-thumb { background: #bdc3c7; border-radius: 10px; }
+
+        .penalty-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5vh 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .penalty-row:last-child { border-bottom: none; }
+
+        .penalty-text {
+            font-size: clamp(14px, 1.6vw, 18px);
+            color: #2c3e50;
+            font-weight: 500;
+            flex-grow: 1;
+            padding-right: 15px;
+            line-height: 1.3;
+        }
+
+        .penalty-actions {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+        }
+
+        button {
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.1s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-minus {
+            background-color: #c0392b;
+            color: white;
+            width: clamp(70px, 8vw, 100px);
+            height: clamp(35px, 6vh, 45px);
+            font-size: clamp(14px, 1.5vw, 16px);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .btn-clear {
+            background-color: #1e272e;
+            color: white;
+            width: clamp(60px, 7vw, 90px);
+            height: clamp(35px, 6vh, 45px);
+            font-size: clamp(12px, 1.4vw, 14px);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .value-box {
+            background-color: transparent;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            width: clamp(60px, 7vw, 80px);
+            height: clamp(35px, 6vh, 45px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(14px, 1.6vw, 18px);
+            font-weight: 500;
+            color: #7f8c8d;
+        }
+
+        /* ----- FOOTER ----- */
+        .footer {
+            flex: 0 0 auto;
+            padding-top: 2vh;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .bottom-buttons {
+            display: flex;
+            align-items: flex-start;
+            gap: 1vw;
+        }
+
+        .btn-time {
+            background-color: #3498db;
+            color: white;
+            height: clamp(40px, 7vh, 50px);
+            padding: 0 clamp(10px, 2vw, 20px);
+            font-size: clamp(14px, 1.5vw, 16px);
+            font-variant-numeric: tabular-nums; /* Tambahan agar pergerakan angka timer stabil */
+        }
+
+        .btn-diskualifikasi {
+            background-color: #e74c3c;
+            color: white;
+            height: clamp(40px, 7vh, 50px);
+            padding: 0 clamp(10px, 2vw, 20px);
+            font-size: clamp(14px, 1.5vw, 16px);
+        }
+
+        .btn-finish {
+            background-color: #34495e;
+            color: white;
+            height: clamp(40px, 7vh, 50px);
+            padding: 0 clamp(15px, 2.5vw, 25px);
+            font-size: clamp(14px, 1.5vw, 16px);
+        }
+
+        .icon-btn-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .small-icon-btn {
+            background-color: #e5ebec;
+            border: 1px solid #bdc3c7;
+            width: clamp(35px, 4vw, 45px);
+            height: clamp(25px, 4vh, 30px);
+            border-radius: 4px;
+        }
+
+        .total-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5vw;
+        }
+
+        .total-label {
+            font-size: clamp(18px, 2.2vw, 24px);
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .total-box {
+            background-color: transparent;
+            border: 1px solid #95a5a6;
+            border-radius: 4px;
+            width: clamp(75px, 9vw, 90px);
+            height: clamp(40px, 7vh, 50px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(18px, 2.2vw, 24px);
+            font-weight: 700;
+            color: #555;
+        }
+
+        .value-box.active {
+            color: #000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <!-- Kotak ini akan berubah warna sesuai sudut -->
+                <div class="sudut-box" id="sudut-box"></div>
+                <div class="athlete-info">
+                    <div class="athlete-name" id="athlete-name">Menunggu...</div>
+                    <div class="athlete-kontingen" id="athlete-kontingen">-</div>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="partai-title">PARTAI</div>
+                <div class="partai-number" id="partai-number">-</div>
+            </div>
+            
+            <div class="header-right">
+                <div class="header-right-text" id="match-category">
+                    MENUNGGU<br>PERTANDINGAN
+                </div>
+                <!-- Tombol Paksa Landscape -->
+                <button class="btn-landscape" onclick="lockLandscape()" title="Kunci Tampilan Landscape">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="6" width="20" height="12" rx="2" ry="2"></rect>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT (PENALTY LIST) -->
+        <div class="main-content" id="penalty-container">
+            <!-- Aturan akan dimuat secara dinamis oleh JavaScript -->
+            <div style="text-align:center; color:#7f8c8d; margin-top:20px; font-weight: 500;">
+                Menunggu Data Kategori...
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="bottom-buttons">
+                <div class="icon-btn-container">
+                    <button class="btn-time" id="d-timer">TIMER</button>
+                    <button class="small-icon-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                        <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="total-section">
+                <div class="total-label">TOTAL</div>
+                <div class="total-box active" id="total-val">0.00</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIKA & FIREBASE -->
+    <script>
+        // INISIALISASI FIREBASE
+        const firebaseConfig = {
+  apiKey: "AIzaSyBML8_WknVxi1LaCoIvRPQwQwWxkpYY7Mc",
+  authDomain: "tanding-latif.firebaseapp.com",
+  databaseURL: "https://tanding-latif-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tanding-latif",
+  storageBucket: "tanding-latif.firebasestorage.app",
+  messagingSenderId: "1088072457964",
+  appId: "1:1088072457964:web:e23c40cf40409c83468fc9"
+};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // DATA ATURAN PENGURANGAN BERDASARKAN KATEGORI
+        const ruleSets = {
+            'TUNGGAL': [
+                "Penampilan melebihi atau kekurangan dari toleransi waktu >5 detik s/d 10 detik.",
+                "Penampilan keluar gelanggang 10 m x 10 m.",
+                "Menjatuhkan senjata, menyentuh lantai.",
+                "Pakaian tidak sesuai aturan (kain samping jatuh), kain samping tidak 1 (satu) motif, baju atasan dan bawahan tidak 1 (satu) warna.",
+                "Menahan gerakan lebih dari 5 (lima) detik."
+            ],
+            'GANDA': [
+                "Penampilan melebihi atau kekurangan dari toleransi waktu >5 detik s/d 10 detik.",
+                "Penampilan keluar gelanggang 10 m x 10 m.",
+                "Senjata jatuh tidak sesuai dengan deskripsi.",
+                "Senjata jatuh di luar gelanggang saat tim masih harus menggunakannya.",
+                "Menggunakan senjata wajib kembar.",
+                "Pakaian tidak sesuai aturan, atasan dan bawahan, serta kain samping dan ikat kepala tidak 1 (satu) motif, termasuk pakaian robek ketika menampilkan jurus.",
+                "Menahan gerakan lebih dari 5 (lima) detik.",
+                "Gerakan akhir tidak sesuai dengan sinopsis."
+            ],
+            'REGU': [
+                "Penampilan melebihi atau kekurangan dari toleransi waktu >5 detik s/d 10 detik.",
+                "Penampilan keluar gelanggang 10 m x 10 m.",
+                "Pakaian tidak sesuai aturan.",
+                "Manahan gerakan lebih dari 5 (lima) detik"
+            ],
+            'SOLO KREATIF': [
+                "Penampilan satu kaki keluar gelanggang 10 m x 10 m.",
+                "Senjata jatuh tidak memenuhi sinopsis.",
+                "Senjata jatuh keluar gelanggang saat masih harus menggunakan dalam penampilannya.",
+                "Senjata terlepas dari gagangnya atau patah atau rusak",
+                "Mengenakan pakaian yang tidak sesuai dengan ketentuan.",
+                "Penampilan melebihi atau kurang dari toleransi waktu >5 detik s/d 10 detik.",
+                "Gerakan akhir tidak sesuai dengan sinopsis."
+            ]
+        };
+
+        let activeMatchInfo = {};
+        let penalties = {};
+
+        db.ref('activeMatch').on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val) {
+                activeMatchInfo = val;
+                updateHeaderUI();
+            } else {
+                activeMatchInfo = {};
+                resetHeaderUI();
+            }
+        });
+
+        function updateHeaderUI() {
+            // Update teks data diri
+            document.getElementById('athlete-name').innerText = activeMatchInfo.name ? activeMatchInfo.name.toUpperCase() : '-';
+            document.getElementById('athlete-kontingen').innerText = activeMatchInfo.cont ? activeMatchInfo.cont.toUpperCase() : '-';
+            document.getElementById('partai-number').innerText = activeMatchInfo.partai || '-';
+            
+            // Update Kategori Match
+            let kategori = activeMatchInfo.kategori ? activeMatchInfo.kategori.toUpperCase() : '';
+            document.getElementById('match-category').innerHTML = `${kategori}<br>PENYISIHAN`;
+
+            // Update warna sudut atlet (Biru / Merah)
+            const box = document.getElementById('sudut-box');
+            const nameText = document.getElementById('athlete-name');
+            if (activeMatchInfo.side === 'merah') {
+                box.style.background = 'linear-gradient(to bottom, #800000, #FF4136)'; // Gradient Merah
+                nameText.style.color = '#c0392b';
+            } else {
+                box.style.background = 'linear-gradient(to bottom, #001f3f, #0074D9)'; // Gradient Biru
+                nameText.style.color = '#1976D2';
+            }
+
+            // Render daftar penalti sesuai kategori
+            renderPenaltyRows(kategori);
+        }
+
+        function resetHeaderUI() {
+            document.getElementById('athlete-name').innerText = "MENUNGGU PESERTA";
+            document.getElementById('athlete-kontingen').innerText = "-";
+            document.getElementById('partai-number').innerText = "-";
+            document.getElementById('match-category').innerHTML = "MENUNGGU<br>PERTANDINGAN";
+            
+            // Default warna abu-abu jika belum ada
+            document.getElementById('sudut-box').style.background = '#bdc3c7';
+            document.getElementById('athlete-name').style.color = '#555';
+
+            document.getElementById('penalty-container').innerHTML = '<div style="text-align:center; color:#7f8c8d; margin-top:20px; font-weight: 500;">Menunggu Data Kategori...</div>';
+            penalties = {};
+            document.getElementById('total-val').innerText = "0.00";
+        }
+
+        // FUNGSI: Me-render daftar aturan secara dinamis
+        function renderPenaltyRows(kategoriName) {
+            const container = document.getElementById('penalty-container');
+            container.innerHTML = '';
+            
+            let catKey = 'TUNGGAL'; // Nilai bawaan
+            if (kategoriName) {
+                let k = kategoriName.toUpperCase();
+                if (k.includes('SOLO KREATIF') || k.includes('TUNGGAL BEBAS')) catKey = 'SOLO KREATIF';
+                else if (k.includes('GANDA')) catKey = 'GANDA';
+                else if (k.includes('REGU')) catKey = 'REGU';
+                else if (k.includes('TUNGGAL')) catKey = 'TUNGGAL';
+            }
+
+            const rules = ruleSets[catKey];
+            penalties = {};
+            
+            rules.forEach((text, index) => {
+                let id = index + 1;
+                penalties[id] = 0; // Inisialisasi awal nilai 0
+                
+                container.innerHTML += `
+                <div class="penalty-row">
+                    <div class="penalty-text">${text}</div>
+                    <div class="penalty-actions">
+                        <button class="btn-minus" onclick="addPenalty(${id}, 0.50)">- 0.50</button>
+                        <button class="btn-clear" onclick="clearPenalty(${id})">Clear</button>
+                        <div class="value-box" id="val-${id}">0.00</div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            // Reset total poin pengurangan ketika rules diganti
+            document.getElementById('total-val').innerText = "0.00";
+        }
+
+        // LOGIKA PERHITUNGAN HUKUMAN
+        function addPenalty(rowId, amount) {
+            if(penalties[rowId] !== undefined) {
+                penalties[rowId] += amount;
+                updatePenaltyUI(rowId);
+            }
+        }
+
+        function clearPenalty(rowId) {
+            if(penalties[rowId] !== undefined) {
+                penalties[rowId] = 0;
+                updatePenaltyUI(rowId);
+            }
+        }
+
+        function updatePenaltyUI(rowId) {
+            const rowBox = document.getElementById(`val-${rowId}`);
+            if (penalties[rowId] > 0) {
+                rowBox.innerText = penalties[rowId].toFixed(2);
+                rowBox.classList.add('active');
+            } else {
+                rowBox.innerText = "0.00";
+                rowBox.classList.remove('active');
+            }
+
+            // Update total
+            let total = 0;
+            for (let key in penalties) {
+                total += penalties[key];
+            }
+            document.getElementById('total-val').innerText = total.toFixed(2);
+            
+            // Push total data pengurangan ke Firebase
+            db.ref('scores').update({ dewanPenalty: total });
+        }
+
+
+        // FUNGSI: Mode Layar Penuh Normal (Ikon Kecil Bawah)
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // FUNGSI: Paksa Orientasi Landscape (Ikon Kanan Atas)
+        function lockLandscape() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock("landscape").catch(err => console.log(err));
+                    }
+                }).catch(err => console.log(err));
+            } else {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock("landscape").catch(err => console.log(err));
+                }
+            }
+        }
+
+        // LOGIKA TIMER TERINTEGRASI DENGAN FIREBASE
+        let elapsedTime = 0;
+        let timerInterval;
+        let startTime;
+
+        db.ref('timer').on('value', (snapshot) => {
+            const val = snapshot.val();
+            if(val) {
+                elapsedTime = val.elapsedTime;
+                updateTimerDisplay(elapsedTime);
+                if(val.isRunning) {
+                    if(!timerInterval) {
+                        startTime = Date.now() - elapsedTime;
+                        timerInterval = setInterval(() => {
+                            elapsedTime = Date.now() - startTime;
+                            updateTimerDisplay(elapsedTime);
+                        }, 10);
+                    }
+                } else {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            }
+        });
+
+        function updateTimerDisplay(time) {
+            let mins = Math.floor(time / 60000);
+            let secs = Math.floor((time % 60000) / 1000);
+            let ms = Math.floor((time % 1000) / 10);
+            let formatted = (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs) + "." + (ms < 10 ? "0" + ms : ms);
+            const timerBtn = document.getElementById('d-timer');
+            if (timerBtn) {
+                timerBtn.innerText = "TIMER : " + formatted;
+            }
+        }
+    </script>
+</body>
+</html>
